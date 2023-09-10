@@ -14,6 +14,26 @@
 static int self_pipe[2];
 static pid_t child_pid;
 
+volatile int x;
+
+/*
+ * Sleep for a very short random before the poll() and kill(), hoping to find
+ * the timing required for the race case.
+ */
+static void
+random_sleep(void)
+{
+	/*
+	struct timespec ts = {
+		.tv_nsec = random() % 10000
+	};
+	nanosleep(&ts, NULL);
+	*/
+	int busy_loops = random() % 1000;
+	for (int i = 0; i < busy_loops; ++i)
+		x = i;	/* something the compiler can't optimise away */
+}
+
 static void
 child_main(void)
 {
@@ -32,9 +52,11 @@ child_main(void)
 		};
 
 		/* Send a ping! */
+		random_sleep();
 		kill(parent_pid, SIGUSR1);
 
 		/* Wait for a pong. */
+		random_sleep();
 		for (;;) {
 			if (poll(&pollfd, 1, -1) == 1) {
 				char c;
@@ -122,6 +144,7 @@ main(int argc, char *argv[])
 		};
 
 		/* Wait for a ping. */
+		random_sleep();
 		if (poll(&pollfd, 1, -1) == 1) {
 			char c;
 
@@ -129,6 +152,7 @@ main(int argc, char *argv[])
 				received_pings++;
 
 				/* Send a pong! */
+				random_sleep();
 				kill(child_pid, SIGUSR1);
 			}
 		}
