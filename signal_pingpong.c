@@ -55,7 +55,7 @@ start_child(void)
 	sigset_t save_mask;
 
 	sigfillset(&mask);
-	sigprocmask(SIG_SETMASK, &mask, &save_mask);
+	sigprocmask(SIG_BLOCK, &mask, &save_mask);
 	child_pid = fork();
 	assert(child_pid >= 0);
 	sigprocmask(SIG_SETMASK, &save_mask, NULL);
